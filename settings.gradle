@@ -1,7 +1,10 @@
-rootProject.name = 'distributed-algorithm-simulator'
+rootProject.name = 'nio-sut-simulation'
 
 include 'ui'
 include 'graphmodel'
 include 'physics'
 include 'simulator'
+include 'simulation'
+include 'algorithms'
+include 'lecture'
 
