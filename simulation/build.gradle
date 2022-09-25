@@ -8,7 +8,7 @@ ext.moduleName = 'simulation'
 
 dependencies {
     implementation project(':simulator')
-    implementation project(':algorithms')
+//    implementation project(':algorithms')
     implementation project(':ui')
     implementation project(':physics')
     implementation project(':graphmodel')
