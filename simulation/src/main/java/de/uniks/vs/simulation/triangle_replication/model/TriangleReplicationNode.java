@@ -6,6 +6,7 @@ import de.uniks.vs.simulator.model.Message;
 import de.uniks.vs.simulator.model.Node;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class TriangleReplicationNode extends Node {
 
@@ -50,6 +51,16 @@ public class TriangleReplicationNode extends Node {
     }
 
     public void addSubnet(Subnet subnet) {
-        this.subnets.put(subnet.id, subnet);
+        this.subnets.put(subnet.getID(), subnet);
+        subnet.addMember(this.getID());
+    }
+
+    public void updateInfo() {
+        this.setColor(this.getColor());
+        String text = this.getID() + "  ";
+        for (Map.Entry<Integer, Subnet> entry :this.subnets.entrySet()) {
+            text += entry.getKey() +":["+entry.getValue().getMembers() + "]";
+        }
+        this.setText(text);
     }
 }

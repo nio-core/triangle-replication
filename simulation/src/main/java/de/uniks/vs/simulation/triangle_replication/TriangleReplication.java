@@ -40,7 +40,11 @@ public class TriangleReplication {
         }
         if (node_groups.size() > 1) System.out.println("HA:      multiple sub groups " + node_groups.size());
         // %   -If subnet is not completely occupied and at least one is already receiving data from another
-        Map.Entry<Integer, LinkedList<Integer>> entry = node_groups.entrySet().iterator().next(); // TODO: select best subnet match
+        Map.Entry<Integer, LinkedList<Integer>> entry = node_groups.entrySet().iterator().next();
+        if (node_groups.size() > 1 && _target_nodes.size() == node_groups.size()) {   // TODO: select best subnet match
+            Map.Entry<Integer, LinkedList<Integer>> second = node_groups.entrySet().iterator().next();
+            entry.getValue().add(second.getValue().getFirst());
+        }
         if (entry.getValue().size() < 3) {
             // %   -Then data of new node is merged with that of the incomplete subnet
             _target_nodes = getTargetNodes(_target_nodes, node_groups, entry);
@@ -48,8 +52,7 @@ public class TriangleReplication {
             this.connect(_id, _target_nodes);
         } else {
             // %   -Else selected node(s) must not be in the same subnet
-            _target_nodes.clear();
-            _target_nodes.add(entry.getValue().getLast());
+            _target_nodes = getTargetNodesWithNewSubnet(_target_nodes, entry);
             System.out.println("HA: === 4 === connect when subnet is complete " + _target_nodes);
             this.connect(_id, _target_nodes);
         }
@@ -62,7 +65,13 @@ public class TriangleReplication {
         // println!(".... addNewNode {} ...", _id);
 
         // println!("{}", self.nodes.lock().unwrap().len());
+        this.node.updateInfo();
+    }
 
+    private LinkedList<Integer> getTargetNodesWithNewSubnet(LinkedList<Integer> _target_nodes, Map.Entry<Integer, LinkedList<Integer>> entry) {
+        _target_nodes.clear();
+        _target_nodes.add(entry.getValue().getLast());
+        return _target_nodes;
     }
 
     private LinkedList<Integer> getTargetNodes(LinkedList<Integer> _target_nodes, HashMap<Integer, LinkedList<Integer>> node_groups, Map.Entry<Integer, LinkedList<Integer>> entry) {
@@ -89,11 +98,15 @@ public class TriangleReplication {
     private LinkedList<Integer> getSubnet(Integer target) {
         LinkedList<Integer> subnet = new LinkedList<>();
         TriangleReplicationNode node1 = this.getNode(target);
-        subnet.add(target);
 
         for (Integer neighbor : node1.getNeighbors()) {
             subnet.add(neighbor);
         }
+
+        if (subnet.size() > 1) {
+            subnet.clear();
+        }
+        subnet.add(target);
         return subnet;
     }
 
@@ -127,16 +140,22 @@ public class TriangleReplication {
     }
 
     private void updateSubnet(int node_id, LinkedList<Integer> target_nodes) {
-        TriangleReplicationNode node = this.getNode(node_id);
-
         Subnet subnet = getSubnet(target_nodes);
+        this.getNode(node_id).addSubnet(subnet);
+        TriangleReplicationNode first_target = this.getNode(target_nodes.get(0));
 
         if (this.node.getSimulation().getNodeCount() > 2 && target_nodes.size() == 1) {
-            this.getNode(node_id).addSubnet(subnet);
-            this.getNode(target_nodes.getFirst()).addSubnet(subnet);
-            return;
+            first_target.addSubnet(subnet);
+        } else if (target_nodes.size() > 1) {
+            TriangleReplicationNode second_target = this.getNode(target_nodes.get(1));
+            this.connect_2_nodes(first_target.getID(),second_target.getID());
+            first_target.addSubnet(subnet);
+            second_target.addSubnet(subnet);
         }
-        this.getNode(node_id).addSubnet(subnet);
+
+        for (int id :subnet.getMembers()) {
+            this.getNode(id).updateInfo();
+        }
     }
 
     private Subnet getSubnet(LinkedList<Integer> target_nodes) {
@@ -146,7 +165,7 @@ public class TriangleReplication {
 
             for (Map.Entry<Integer, Subnet> entry : target_node.getSubnets().entrySet()) {
 
-                if (entry.getValue().members.size() < 3) {
+                if (entry.getValue().getMembers().size() < 3) {
                     return entry.getValue();
                 }
             }
