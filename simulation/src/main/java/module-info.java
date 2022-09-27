@@ -12,4 +12,5 @@ module simulation {
         exports de.uniks.vs.simulation.skill_unit_task_model.blockchain;
         exports de.uniks.vs.simulation.skill_unit_task_model.blockchain.elements;
         exports de.uniks.vs.simulation.triangle_replication;
+        exports de.uniks.vs.simulation.triangle_replication.model;
 }
