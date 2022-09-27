@@ -41,7 +41,7 @@ public class TriangleReplication {
         if (node_groups.size() > 1) System.out.println("HA:      multiple sub groups " + node_groups.size());
         // %   -If subnet is not completely occupied and at least one is already receiving data from another
         Map.Entry<Integer, LinkedList<Integer>> entry = node_groups.entrySet().iterator().next();
-        if (node_groups.size() > 1 && _target_nodes.size() == node_groups.size()) {   // TODO: select best subnet match
+        if (node_groups.size() > 1 && _target_nodes.size() == node_groups.size()) {
             Map.Entry<Integer, LinkedList<Integer>> second = node_groups.entrySet().iterator().next();
             entry.getValue().add(second.getValue().getFirst());
         }
@@ -59,12 +59,6 @@ public class TriangleReplication {
         // %   -result: subnet in triangle topology with maximum connectivity
 
         // %   -data of joining node  transmitted to  newly connected nodes
-
-        // let _id  = self.nodes.try_lock().unwrap().back().unwrap().id;
-
-        // println!(".... addNewNode {} ...", _id);
-
-        // println!("{}", self.nodes.lock().unwrap().len());
         this.node.updateInfo();
     }
 
@@ -76,7 +70,7 @@ public class TriangleReplication {
 
     private LinkedList<Integer> getTargetNodes(LinkedList<Integer> _target_nodes, HashMap<Integer, LinkedList<Integer>> node_groups, Map.Entry<Integer, LinkedList<Integer>> entry) {
         if (entry.getValue().size() == 1) {
-            System.out.println("HA: === 4 === set if size = 1  " + this.getSubnet(entry.getValue().getFirst())); // TODO: select all nodes for one subnet
+            System.out.println("HA: === 4 === set if size = 1  " + this.getSubnet(entry.getValue().getFirst()));
             _target_nodes = this.getSubnet(entry.getValue().getFirst());
         }
         else {
