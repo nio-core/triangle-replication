@@ -4,6 +4,9 @@ import de.uniks.vs.simulation.triangle_replication.model.SimpleTriangleReplicati
 import de.uniks.vs.simulation.triangle_replication.model.SimpleSubnet;
 import de.uniks.vs.simulator.model.Node;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 public class SimpleTriangleReplication {
@@ -22,6 +25,7 @@ public class SimpleTriangleReplication {
         // %   -if first node then create subnet and return
         if (this.node.getSimulation().getAllNodes().size() == 1) {
             this.node.addSubnet(new SimpleSubnet());
+            this.printStatistics();
             return;
         }
         // %   -search for at least one but no more than two neighbouring nodes from set of nodes which connectivity less than four
@@ -62,20 +66,64 @@ public class SimpleTriangleReplication {
         // println!(".... addNewNode {} ...", _id);
 
         // println!("{}", self.nodes.lock().unwrap().len());
+        this.node.updateInfo();
+        this.printStatistics();
+    }
 
+    private void printStatistics() {
+        HashMap<Integer,Integer>  member_per_subnet = new HashMap<>();
+        HashMap<Integer,Integer> subnets_per_member= new HashMap<>();
+
+        HashMap<Integer, SimpleSubnet> subnets = SimpleSubnet.subnets;
+        for (SimpleSubnet subnet : subnets.values()) {
+            int member_size = subnet.getMembers().size();
+            if(member_per_subnet.containsKey(member_size)) {
+                int count = member_per_subnet.get(member_size);
+                member_per_subnet.put(member_size,(count+1));
+            } else {
+                member_per_subnet.put(member_size,1);
+            }
+        }
+        for (Node node : this.getAllNodes().values()) {
+            SimpleTriangleReplicationNode t_node = (SimpleTriangleReplicationNode) node;
+            int subnet_count = t_node.getSubnets().size();
+            if(subnets_per_member.containsKey(subnet_count)) {
+                int count = subnets_per_member.get(subnet_count);
+                subnets_per_member.put(subnet_count,(count+1));
+            } else {
+                subnets_per_member.put(subnet_count,1);
+            }
+        }
+        String statistics = "Nodes:" + this.getAllNodes().size()
+                + "  Members per Subnet:" + member_per_subnet
+                + "  Subnets per Member:" + subnets_per_member + "\n";
+
+        Path filePath = Path.of("statistics.txt");
+        System.out.println(statistics);
+
+        try(FileWriter fileWriter = new FileWriter(filePath.toFile(),true)){
+            fileWriter.write(statistics);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private LinkedList<Integer> getTargetNodes(LinkedList<Integer> _target_nodes, HashMap<Integer, LinkedList<Integer>> node_groups, Map.Entry<Integer, LinkedList<Integer>> entry) {
         if (entry.getValue().size() == 1) {
-            System.out.println("HA: === 4 === set if size = 1  " + this.getSubnet(entry.getValue().getFirst())); // TODO: select all nodes for one subnet
-            _target_nodes = this.getSubnet(entry.getValue().getFirst());
+            System.out.println("HA: === 4 === set if size = 1  " + this.getSubnetforNode(entry.getValue().getFirst())); // TODO: select all nodes for one subnet
+            _target_nodes = this.getSubnetforNode(entry.getValue().getFirst());
+            if (_target_nodes.size() > 2) {
+                _target_nodes = entry.getValue();
+            }
         } else {
             if (node_groups.size() > 1) {
                 System.out.println("HA: === 4 === set " + entry.getValue());
                 Iterator<LinkedList<Integer>> iterator = node_groups.values().iterator();
                 _target_nodes.clear();
                 _target_nodes.add(iterator.next().get(0));
-                _target_nodes.add(iterator.next().get(0));
+                if (this.getSubnet(entry.getKey()).getMembers().size()<3) {
+                    _target_nodes.add(iterator.next().get(0));
+                }
             } else {
                 System.out.println("HA: === 4 === set " + entry.getValue());
                 _target_nodes = entry.getValue();
@@ -84,10 +132,14 @@ public class SimpleTriangleReplication {
         return _target_nodes;
     }
 
-    private LinkedList<Integer> getSubnet(Integer target) {
+    private SimpleSubnet getSubnet(Integer subnet_id) {
+        return SimpleSubnet.subnets.get(subnet_id);
+    }
+
+    private LinkedList<Integer> getSubnetforNode(int node_id) {
         LinkedList<Integer> subnet = new LinkedList<>();
-        SimpleTriangleReplicationNode node1 = this.getNode(target);
-        subnet.add(target);
+        SimpleTriangleReplicationNode node1 = this.getNode(node_id);
+        subnet.add(node_id);
 
         for (Integer neighbor : node1.getNeighbors()) {
             subnet.add(neighbor);
@@ -127,7 +179,7 @@ public class SimpleTriangleReplication {
     private void updateSubnet(int node_id, LinkedList<Integer> target_nodes) {
         SimpleTriangleReplicationNode node = this.getNode(node_id);
 
-        SimpleSubnet subnet = getSubnet(target_nodes);
+        SimpleSubnet subnet = getSubnetforNode(target_nodes);
 
         if (this.node.getSimulation().getNodeCount() > 2 && target_nodes.size() == 1) {
             this.getNode(node_id).addSubnet(subnet);
@@ -135,9 +187,13 @@ public class SimpleTriangleReplication {
             return;
         }
         this.getNode(node_id).addSubnet(subnet);
+
+        for (int id :subnet.getMembers()) {
+            this.getNode(id).updateInfo();
+        }
     }
 
-    private SimpleSubnet getSubnet(LinkedList<Integer> target_nodes) {
+    private SimpleSubnet getSubnetforNode(LinkedList<Integer> target_nodes) {
 
         for (int target_node_id : target_nodes) {
             SimpleTriangleReplicationNode target_node = this.getNode(target_node_id);
@@ -158,8 +214,8 @@ public class SimpleTriangleReplication {
         this.node.getSimulation().connectNodes(_node1, _node2);
     }
 
-    private SimpleTriangleReplicationNode getNode(int node) {
-        return (SimpleTriangleReplicationNode) this.getAllNodes().get(node);
+    private SimpleTriangleReplicationNode getNode(int node_id) {
+        return (SimpleTriangleReplicationNode) this.getAllNodes().get(node_id);
     }
 
     private LinkedList<Integer> getNodesWithLowestConnectivity(int id) {

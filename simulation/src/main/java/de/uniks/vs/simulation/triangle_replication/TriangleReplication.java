@@ -4,6 +4,9 @@ import de.uniks.vs.simulation.triangle_replication.model.Subnet;
 import de.uniks.vs.simulation.triangle_replication.model.TriangleReplicationNode;
 import de.uniks.vs.simulator.model.Node;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 public class TriangleReplication {
@@ -22,6 +25,7 @@ public class TriangleReplication {
         // %   -if first node then create subnet and return
         if (this.node.getSimulation().getAllNodes().size() == 1) {
             this.node.addSubnet(new Subnet());
+            this.printStatistics();
             return;
         }
         // %   -search for at least one but no more than two neighbouring nodes from set of nodes which connectivity less than four
@@ -60,6 +64,45 @@ public class TriangleReplication {
 
         // %   -data of joining node  transmitted to  newly connected nodes
         this.node.updateInfo();
+        this.printStatistics();
+    }
+
+    private void printStatistics() {
+        HashMap<Integer,Integer>  member_per_subnet = new HashMap<>();
+        HashMap<Integer,Integer> subnets_per_member= new HashMap<>();
+
+        HashMap<Integer, Subnet> subnets = Subnet.subnets;
+        for (Subnet subnet : subnets.values()) {
+            int member_size = subnet.getMembers().size();
+            if(member_per_subnet.containsKey(member_size)) {
+                int count = member_per_subnet.get(member_size);
+                member_per_subnet.put(member_size,(count+1));
+            } else {
+                member_per_subnet.put(member_size,1);
+            }
+        }
+        for (Node node : this.getAllNodes().values()) {
+            TriangleReplicationNode t_node = (TriangleReplicationNode) node;
+            int subnet_count = t_node.getSubnets().size();
+            if(subnets_per_member.containsKey(subnet_count)) {
+                int count = subnets_per_member.get(subnet_count);
+                subnets_per_member.put(subnet_count,(count+1));
+            } else {
+                subnets_per_member.put(subnet_count,1);
+            }
+        }
+        String statistics = "Nodes:" + this.getAllNodes().size()
+                + "  Members per Subnet:" + member_per_subnet
+                + "  Subnets per Member:" + subnets_per_member + "\n";
+
+        Path filePath = Path.of("statistics.txt");
+        System.out.println(statistics);
+
+        try(FileWriter fileWriter = new FileWriter(filePath.toFile(),true)){
+            fileWriter.write(statistics);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private LinkedList<Integer> getTargetNodesWithNewSubnet(LinkedList<Integer> _target_nodes, Map.Entry<Integer, LinkedList<Integer>> entry) {

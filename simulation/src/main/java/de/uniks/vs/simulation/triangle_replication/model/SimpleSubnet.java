@@ -15,4 +15,16 @@ public class SimpleSubnet {
         this.members = new HashSet<>();
         subnets.put(this.id, this);
     }
+
+    public HashSet<Integer> getMembers() {
+        return members;
+    }
+
+    public void addMember(int member) {
+        this.members.add(member);
+    }
+
+    public int getID() {
+        return id;
+    }
 }

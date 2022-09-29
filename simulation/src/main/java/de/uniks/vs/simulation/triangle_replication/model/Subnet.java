@@ -16,6 +16,10 @@ public class Subnet {
         subnets.put(this.id, this);
     }
 
+    public HashMap<Integer, Subnet> getSubnets() {
+        return subnets;
+    }
+
     public HashSet<Integer> getMembers() {
         return members;
     }
