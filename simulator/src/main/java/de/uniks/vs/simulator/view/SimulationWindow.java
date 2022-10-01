@@ -52,7 +52,8 @@ public class SimulationWindow extends SfcFrame {
             }
         });
         this.setSize(700, 500);
-        this.init(new Simulation());
+//        this.init(new Simulation());
+        this.init(Simulation.getInstance());
 //    this.setVisible(true);
     }
 
@@ -74,7 +75,7 @@ public class SimulationWindow extends SfcFrame {
         menuItem = new MenuItem("new"); //$NON-NLS-1$
         menuItem.setOnAction(e -> {
                     PropertyWindow.closeAllPropertyWindows();
-                    SimulationWindow.this.init(new Simulation());
+                    SimulationWindow.this.init(Simulation.getInstance());
                 }
         );
 //        menuItem.setGraphic(new ImageView(Icons.NEW));

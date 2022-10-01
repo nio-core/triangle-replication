@@ -1,5 +1,6 @@
 package de.uniks.vs.simulation.triangle_replication;
 
+import de.uniks.vs.simulation.triangle_replication.model.SimpleTriangleReplicationNode;
 import de.uniks.vs.simulation.triangle_replication.model.Subnet;
 import de.uniks.vs.simulation.triangle_replication.model.TriangleReplicationNode;
 import de.uniks.vs.simulator.model.Node;
@@ -16,16 +17,21 @@ public class TriangleReplication {
         this.node = node;
     }
 
+    String statistics;
     public void add(){
+        statistics = "";
         System.out.println("\nHA: ========================================================");
         System.out.println("HA: === 1 === create_new_node");
+        long start = System.nanoTime();
         int _id = node.getID();
         this.node.setText(String.valueOf(this.node.getID()));
         System.out.println("HA:   node id "+ _id);
         // %   -if first node then create subnet and return
         if (this.node.getSimulation().getAllNodes().size() == 1) {
             this.node.addSubnet(new Subnet());
-            this.printStatistics();
+            long end = System.nanoTime();
+            float duration = end - start;
+            this.printStatistics(_id, duration);
             return;
         }
         // %   -search for at least one but no more than two neighbouring nodes from set of nodes which connectivity less than four
@@ -36,6 +42,7 @@ public class TriangleReplication {
         System.out.println("HA: === 3 === get_nodes_with_lowest_connectivity");
         _target_nodes = this.getNodesWithLowestConnectivity(_id);
         System.out.println("HA:   target nodes " + _target_nodes);
+        statistics +=_target_nodes.size();
         // %   -If two selected nodes are in the same subnet they are preferred
         HashMap<Integer,LinkedList<Integer>> node_groups = this.groupNodes(_target_nodes);
         System.out.println("HA:    all nodes:" +  this.getAllNodes().keySet());
@@ -64,10 +71,13 @@ public class TriangleReplication {
 
         // %   -data of joining node  transmitted to  newly connected nodes
         this.node.updateInfo();
-        this.printStatistics();
+        long end = System.nanoTime();
+        float duration = end - start;
+        this.printStatistics(_id, duration);
     }
 
-    private void printStatistics() {
+    private void printStatistics(int id, float duration) {
+        duration =duration/1000000;
         HashMap<Integer,Integer>  member_per_subnet = new HashMap<>();
         HashMap<Integer,Integer> subnets_per_member= new HashMap<>();
 
@@ -82,6 +92,8 @@ public class TriangleReplication {
             }
         }
         for (Node node : this.getAllNodes().values()) {
+            if (!(node instanceof TriangleReplicationNode))
+                continue;
             TriangleReplicationNode t_node = (TriangleReplicationNode) node;
             int subnet_count = t_node.getSubnets().size();
             if(subnets_per_member.containsKey(subnet_count)) {
@@ -91,11 +103,17 @@ public class TriangleReplication {
                 subnets_per_member.put(subnet_count,1);
             }
         }
-        String statistics = "Nodes:" + this.getAllNodes().size()
-                + "  Members per Subnet:" + member_per_subnet
-                + "  Subnets per Member:" + subnets_per_member + "\n";
+        float mps_1 = member_per_subnet.getOrDefault(1, 0);
+        float mps_2 = member_per_subnet.getOrDefault(2, 0);
+        float mps_3 = member_per_subnet.getOrDefault(3, 0);
+        double m = mps_1/3/this.getAllNodes().size() + mps_2/2/this.getAllNodes().size() + mps_3/this.getAllNodes().size();
+        m = mps_1/3/subnets.size() + mps_2/2/subnets.size() + mps_3/subnets.size();
+        String statistics = id+"; "+ mps_1 + "; " +mps_2 + "; " +mps_3 + "; " + this.statistics;
+        statistics += "; " + this.getAllNodes().size()
+                + "; " + getListEntries(member_per_subnet,3)
+                + getListEntries(subnets_per_member,2) + m + "; "+ duration + "\n";
 
-        Path filePath = Path.of("statistics.txt");
+        Path filePath = Path.of("statistics_advanced_2.txt");
         System.out.println(statistics);
 
         try(FileWriter fileWriter = new FileWriter(filePath.toFile(),true)){
@@ -105,6 +123,13 @@ public class TriangleReplication {
         }
     }
 
+    private String getListEntries(HashMap<Integer, Integer> values, int count) {
+        String result = "";
+        for (int i = 1; i <= count; i++) {
+            result += values.get(i) + "; ";
+        }
+        return result;
+    }
     private LinkedList<Integer> getTargetNodesWithNewSubnet(LinkedList<Integer> _target_nodes, Map.Entry<Integer, LinkedList<Integer>> entry) {
         _target_nodes.clear();
         _target_nodes.add(entry.getValue().getLast());
@@ -153,6 +178,8 @@ public class TriangleReplication {
         HashMap<Integer, Node> all_nodes = this.getAllNodes();
 
         for (int node_id: nodes) {
+            if (!(all_nodes.get(node_id) instanceof TriangleReplicationNode))
+                continue;
             TriangleReplicationNode node = (TriangleReplicationNode) all_nodes.get(node_id);
             Set<Integer> _subnets = node.getSubnets().keySet();
 
@@ -198,6 +225,8 @@ public class TriangleReplication {
     private Subnet getSubnet(LinkedList<Integer> target_nodes) {
 
         for (int target_node_id : target_nodes) {
+            if (!(this.getNode(target_node_id) instanceof TriangleReplicationNode))
+                continue;
             TriangleReplicationNode target_node = this.getNode(target_node_id);
 
             for (Map.Entry<Integer, Subnet> entry : target_node.getSubnets().entrySet()) {

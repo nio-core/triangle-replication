@@ -25,7 +25,16 @@ public class Simulation extends Model implements IStepable {
   private int idCnt;
   int msgCount;
 
-  public Simulation() {
+  private static Simulation instance;
+
+  static {
+    instance = new Simulation();
+  }
+  public static Simulation getInstance() {
+     return instance;
+  }
+
+  private Simulation() {
     super();
   }
 
