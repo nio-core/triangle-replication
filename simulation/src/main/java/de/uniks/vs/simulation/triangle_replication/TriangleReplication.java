@@ -8,6 +8,8 @@ import de.uniks.vs.simulator.model.Node;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
 public class TriangleReplication {
